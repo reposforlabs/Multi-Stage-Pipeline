@@ -1,18 +1,88 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
+trigger:
+    - main
+    - dev
+    - qa
 
-trigger: none
+pr: none
 
-pool:
-  vmImage: ubuntu-latest
+stages:
+- stage: Dev
+  displayName: 'Dev'
+  dependsOn: []
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/dev')
+  jobs:
+  - job: Build
+    displayName: 'Build ZIP File and Deploy to WebApp'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: ArchiveFiles@2
+      inputs:
+       rootFolderOrFile: '$(build.sourcesDirectory)'
+       includeRootFolder: false
+       archiveType: 'zip'
+       archiveFile: '$(Build.ArtifactStagingDirectory)/html-website.zip'
+       replaceExistingArchive: true
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+    - task: AzureRmWebAppDeployment@4
+      inputs:
+       ConnectionType: 'AzureRM'
+       azureSubscription: 'Az Sharper(18de88b8-dbf5-4bf3-afec-8f270a015be1)'
+       appType: 'webAppLinux'
+       WebAppName: 'webapp-1-dev'
+       packageForLinux: '$(Build.ArtifactStagingDirectory)/html-website.zip'
+       RuntimeStack: 'PHP|8.1'
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+- stage: QA
+  displayName: 'QA'
+  dependsOn: []
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/qa')
+  jobs:
+  - job: Build
+    displayName: 'Build ZIP File and Deploy to WebApp'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: ArchiveFiles@2
+      inputs:
+       rootFolderOrFile: '$(build.sourcesDirectory)'
+       includeRootFolder: false
+       archiveType: 'zip'
+       archiveFile: '$(Build.ArtifactStagingDirectory)/html-website.zip'
+       replaceExistingArchive: true
+
+    - task: AzureRmWebAppDeployment@4
+      inputs:
+       ConnectionType: 'AzureRM'
+       azureSubscription: 'Az Sharper(18de88b8-dbf5-4bf3-afec-8f270a015be1)'
+       appType: 'webAppLinux'
+       WebAppName: 'webapp-2-qa'
+       packageForLinux: '$(Build.ArtifactStagingDirectory)/html-website.zip'
+       RuntimeStack: 'PHP|8.1'
+
+- stage: Production
+  displayName: 'prod'
+  dependsOn: []
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
+  jobs:
+  - job: Build
+    displayName: 'Build ZIP File and Deploy to WebApp'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: ArchiveFiles@2
+      inputs:
+       rootFolderOrFile: '$(build.sourcesDirectory)'
+       includeRootFolder: false
+       archiveType: 'zip'
+       archiveFile: '$(Build.ArtifactStagingDirectory)/html-website.zip'
+       replaceExistingArchive: true
+
+    - task: AzureRmWebAppDeployment@4
+      inputs:
+       ConnectionType: 'AzureRM'
+       azureSubscription: 'Az Sharper(18de88b8-dbf5-4bf3-afec-8f270a015be1)'
+       appType: 'webAppLinux'
+       WebAppName: 'webapp-3-prod'
+       packageForLinux: '$(Build.ArtifactStagingDirectory)/html-website.zip'
+       RuntimeStack: 'PHP|8.1'
